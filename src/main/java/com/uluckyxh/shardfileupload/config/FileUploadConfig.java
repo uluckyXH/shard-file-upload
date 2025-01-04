@@ -1,5 +1,6 @@
 package com.uluckyxh.shardfileupload.config;
 
+import com.uluckyxh.shardfileupload.constant.FileConstant;
 import jakarta.annotation.PostConstruct;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -41,11 +42,17 @@ public class FileUploadConfig {
      * 单文件大小限制（MB）
      */
     private Integer maxFileSize;
-    
+
+    /**
+     * 预留地址
+     */
+    private String previewUrl;
+
+
     @PostConstruct
     public void init() {
         // 如果是本地存储，确保目录存在
-        if ("LOCAL".equals(storageType)) {
+        if (FileConstant.LOCAL.equals(storageType)) {
             createDirIfNotExists(uploadDir);
             createDirIfNotExists(tempDir);
             log.info("初始化本地存储目录 - 上传目录: {}, 临时目录: {}", uploadDir, tempDir);

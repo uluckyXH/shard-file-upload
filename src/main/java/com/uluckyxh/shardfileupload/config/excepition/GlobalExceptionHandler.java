@@ -24,4 +24,11 @@ public class GlobalExceptionHandler {
         return Result.error("访问的内容不存在");
     }
 
+    @ExceptionHandler(value = FileOperationException.class)
+    // 处理自定义异常
+    public Result<String> handleFileOperationException(FileOperationException e) {
+        log.error("文件操作异常：{}", e.getMessage(), e);
+        return Result.error(e.getMessage());
+    }
+
 }

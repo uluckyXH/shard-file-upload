@@ -1,8 +1,7 @@
 package com.uluckyxh.shardfileupload.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -46,7 +45,12 @@ public class ChunkInfo {
      * 文件名称，冗余存储，方便查询
      */
     private String fileName;
-    
+
+    /**
+     * 源文件名
+     */
+    private String originalFileName;
+
     /**
      * 分片MD5值，用于校验分片完整性
      */
@@ -56,14 +60,23 @@ public class ChunkInfo {
      * 存储类型（LOCAL：本地存储，OSS：阿里云存储）
      */
     private String storageType;
-    
+
+    /**
+     * 文件大小
+     */
+    private Long fileSize;
+
     /**
      * 创建时间
      */
+    @JsonFormat(timezone = "GMT+8",pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
     
     /**
      * 更新时间
      */
+    @JsonFormat(timezone = "GMT+8",pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField(fill = FieldFill.UPDATE)
     private LocalDateTime updateTime;
 } 

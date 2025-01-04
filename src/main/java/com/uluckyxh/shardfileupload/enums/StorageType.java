@@ -16,7 +16,7 @@ public enum StorageType {
     /**
      * 阿里云OSS存储（预留）
      */
-    OSS("OSS", "阿里云OSS存储");
+    OSS("ALI_OSS", "阿里云OSS存储");
     
     /**
      * 存储类型编码
