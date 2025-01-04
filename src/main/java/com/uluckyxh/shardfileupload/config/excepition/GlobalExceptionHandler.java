@@ -1,4 +1,4 @@
-package com.uluckyxh.shardfileupload.config;
+package com.uluckyxh.shardfileupload.config.excepition;
 
 import com.uluckyxh.shardfileupload.common.Result;
 import lombok.extern.slf4j.Slf4j;

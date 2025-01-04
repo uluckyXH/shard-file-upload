@@ -1,6 +1,36 @@
+server:
+  port: 6060 # 服务端口
+
+sqlite:
+  db:
+    path: db/data.db # 数据库文件路径
+
 spring:
   application:
-    name: shard-file-upload
+    name: shard-file-upload # 服务名称
+  datasource:
+    driver-class-name: org.sqlite.JDBC
+    url: jdbc:sqlite:db/data.db # 数据库连接地址
+    username:
+    password:
 
-server:
-  port: 6060
+mybatis-plus:
+  # Mapper接口扫描包路径
+  mapper-locations: classpath*:/mapper/**/*.xml
+  # 实体类所在包路径
+  type-aliases-package: com.uluckyxh.shardfileupload.entity
+  configuration:
+    # 开启驼峰命名转换
+    map-underscore-to-camel-case: true
+    # 打印SQL日志
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 开启二级缓存
+    cache-enabled: true
+  global-config:
+    db-config:
+      # 主键生成策略
+      id-type: auto
+
+
+
+
