@@ -151,6 +151,11 @@ public class FileManageController {
             throw new FileOperationException("文件ID：" + id + "不存在");
         }
 
+        // 只允许本地文件能预览
+        if (!FileConstant.LOCAL.equals(file.getStorageType())) {
+            throw new FileOperationException("暂不支持该存储类型的文件预览");
+        }
+
         // 2. 如果未指定下载文件名，使用原始文件名
         if (StrUtil.isBlank(filename)) {
             filename = file.getOriginalFileName();
