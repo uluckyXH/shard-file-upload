@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: shard-file-upload
+
+server:
+  port: 6060
