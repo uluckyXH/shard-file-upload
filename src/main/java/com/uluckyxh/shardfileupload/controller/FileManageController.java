@@ -1,6 +1,7 @@
 package com.uluckyxh.shardfileupload.controller;
 
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.uluckyxh.shardfileupload.config.excepition.FileOperationException;
 import com.uluckyxh.shardfileupload.constant.FileConstant;
 import com.uluckyxh.shardfileupload.entity.FileInfo;
@@ -187,5 +188,22 @@ public class FileManageController {
         LocalFileManageImpl.view(file.getAccessUrl(), response);
     }
 
+    /**
+     * 分页查询文件列表
+     */
+    @GetMapping("/getByPage")
+    public Result<IPage<FileInfo>> getByPage(@RequestParam(defaultValue = "1") Integer page,
+                                   @RequestParam(defaultValue = "10") Integer size,
+                                             @RequestParam(required = false) String fileName) {
+        return Result.success(fileInfoService.getByPage(page, size,fileName));
+    }
+
+    /**
+     * detail
+     */
+    @GetMapping("/detail/{id}")
+    public Result<FileInfo> detail(@PathVariable String id) {
+        return Result.success(fileInfoService.getById(id));
+    }
 
 }

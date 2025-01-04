@@ -16,5 +16,4 @@ import java.util.List;
 @Service
 public class ChunkInfoServiceImpl extends ServiceImpl<ChunkInfoMapper, ChunkInfo> implements ChunkInfoService {
 
-
 } 
