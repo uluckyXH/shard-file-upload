@@ -1,15 +1,15 @@
 package com.uluckyxh.shardfileupload.manage.impl;
 
+import com.uluckyxh.shardfileupload.config.excepition.FileOperationException;
 import com.uluckyxh.shardfileupload.manage.FileManage;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.info.ProjectInfoProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileCopyUtils;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -35,7 +35,7 @@ public class LocalFileManageImpl implements FileManage {
         createDirIfNotExists(uploadDir);
         log.info("初始化本地文件管理 - 上传目录: {}", uploadDir);
     }
-    
+
     /**
      * 创建目录（如果不存在）
      */
@@ -49,6 +49,7 @@ public class LocalFileManageImpl implements FileManage {
     /**
      * 生成按日期组织的文件路径
      * 格式：上传目录/年/月/日/文件名
+     *
      * @param fileName 文件名
      * @return 完整的文件路径
      */
@@ -124,4 +125,51 @@ public class LocalFileManageImpl implements FileManage {
     public String getBucketName() {
         return uploadDir;
     }
-} 
+
+    /**
+     * 输出文件内容到HTTP响应流
+     * @param url 文件路径
+     * @param response HTTP响应对象
+     */
+    public static void view(String url, HttpServletResponse response) {
+        // 1. 使用Path替代File，更好的跨平台兼容性
+        Path filePath = Paths.get(url).normalize();
+
+        // 2. 检查文件是否存在
+        if (!Files.exists(filePath)) {
+            throw new FileOperationException("文件不存在");
+        }
+
+        try {
+            // 3. 使用try-with-resources自动关闭流
+            // 使用Files.newInputStream替代FileInputStream，更现代的API
+            // 使用8KB的缓冲区大小，这是一个比较好的默认值
+            try (InputStream is = Files.newInputStream(filePath);
+                 BufferedInputStream bis = new BufferedInputStream(is, 8192);
+                 OutputStream out = response.getOutputStream()) {
+
+                // 4. 使用较大的缓冲区提高传输效率（64KB）
+                byte[] buffer = new byte[64 * 1024];
+                int bytesRead;
+
+                // 5. 循环读取并写入响应流
+                while ((bytesRead = bis.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+
+                    // 6. 定期刷新缓冲区，避免内存占用过大
+                    if (bytesRead == buffer.length) {
+                        out.flush();
+                    }
+                }
+
+                // 7. 最后确保所有数据都已写入
+                out.flush();
+
+            } // try-with-resources 会自动关闭所有流
+
+        } catch (IOException e) {
+            log.error("文件操作失败: {}", e.getMessage(), e);
+            throw new FileOperationException("读取/下载文件出错");
+        }
+    }
+}

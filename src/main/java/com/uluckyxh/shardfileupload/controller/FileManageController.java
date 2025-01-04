@@ -7,8 +7,10 @@ import com.uluckyxh.shardfileupload.entity.FileInfo;
 import com.uluckyxh.shardfileupload.enums.FileStatus;
 import com.uluckyxh.shardfileupload.manage.FileManage;
 import com.uluckyxh.shardfileupload.manage.FileManageFactory;
+import com.uluckyxh.shardfileupload.manage.impl.LocalFileManageImpl;
 import com.uluckyxh.shardfileupload.service.FileInfoService;
 import com.uluckyxh.shardfileupload.util.IdGeneratorUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +21,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @RestController
@@ -125,6 +129,57 @@ public class FileManageController {
         }
 
         return Result.success("文件上传成功", resultUrl);
+    }
+
+    /**
+     * 文件预览/下载接口
+     * @param id 文件ID
+     * @param filename 自定义下载文件名（可选）
+     * @param preview 是否为预览模式（默认false表示下载模式）
+     * @param charset 文件编码（默认UTF-8）
+     */
+    @RequestMapping(value = "/view/{id}", method = RequestMethod.GET)
+    public void view(@PathVariable String id,
+                     @RequestParam(required = false) String filename,
+                     @RequestParam(required = false, defaultValue = "true") Boolean preview,
+                     @RequestParam(required = false, defaultValue = "UTF-8") String charset,
+                     HttpServletResponse response) throws IOException {
+
+        // 1. 获取文件信息
+        FileInfo file = fileInfoService.getById(id);
+        if (file == null) {
+            throw new FileOperationException("文件ID：" + id + "不存在");
+        }
+
+        // 2. 如果未指定下载文件名，使用原始文件名
+        if (StrUtil.isBlank(filename)) {
+            filename = file.getOriginalFileName();
+        }
+
+        // 3. 设置响应头
+        if (!preview) {
+            // 下载模式：设置文件下载头，filename需要URL编码防止中文乱码
+            response.addHeader("Content-Disposition", "attachment; filename=" +
+                    URLEncoder.encode(filename, StandardCharsets.UTF_8));
+        }
+        // 设置文件大小
+        response.setContentLengthLong(file.getFileSize());
+        // 设置文件类型和编码
+        response.setContentType(file.getFileExt() + ";charset=" + charset);
+
+        // 4. 支持断点续传的响应头设置
+        response.addHeader("Accept-Ranges", "bytes");
+        if (file.getFileSize() != null && file.getFileSize() > 0) {
+            // 设置内容范围，format: bytes start-end/total
+            response.addHeader("Content-Range", "bytes " + 0 + "-" +
+                    (file.getFileSize() - 1) + "/" + file.getFileSize());
+        }
+
+        // 5. 设置响应缓冲区大小为10MB
+        response.setBufferSize(10 * 1024 * 1024);
+
+        // 6. 调用文件管理服务输出文件内容到响应流
+        LocalFileManageImpl.view(file.getAccessUrl(), response);
     }
 
 
