@@ -1,6 +1,6 @@
 # 文件上传管理系统（后端）
 
-一个基于 Spring Boot 3 + MyBatis-Plus 开发的现代化文件上传管理系统，支持大文件分片上传。
+一个基于 Spring Boot 3 + MyBatis-Plus + SQLite 开发的现代化文件上传管理系统，支持大文件分片上传。
 
 ## 前端项目
 
@@ -11,7 +11,7 @@
 - **开发框架**: Spring Boot 3.4.1
 - **开发语言**: Java 17
 - **ORM 框架**: MyBatis-Plus 3.5.9
-- **数据库**: SQLite
+- **数据库**: SQLite 3.47.2
 - **工具库**: Hutool 5.8.25
 - **构建工具**: Maven
 - **接口文档**: Swagger/OpenAPI
@@ -25,7 +25,6 @@
 - 📦 大文件分片处理
 - 🚀 并发分片上传支持
 - 📊 分片上传进度跟踪
-- ⚡ 断点续传支持
 - 🔒 文件MD5完整性校验
 
 ### 2. 存储策略
@@ -42,6 +41,66 @@
 - 📄 文件详情查看
 - 🖼️ 文件在线预览
 - ⬇️ 文件下载支持
+
+## 数据库说明
+
+项目使用SQLite作为数据库，具有以下特点：
+- 零配置，无需安装数据库服务
+- 单文件存储，方便部署和迁移
+- 支持完整的SQL功能
+- 适合中小型应用
+
+### SQLite配置
+```yaml
+sqlite:
+  db:
+    path: db/data.db  # 数据库文件路径
+
+spring:
+  datasource:
+    driver-class-name: org.sqlite.JDBC
+    url: jdbc:sqlite:db/data.db
+```
+
+### 数据库表设计
+
+#### 文件信息表 (file_info)
+```sql
+CREATE TABLE file_info (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_name VARCHAR(255) NOT NULL,      # 文件名
+    original_file_name VARCHAR(255) NOT NULL, # 原始文件名
+    file_ext VARCHAR(50),                 # 文件扩展名
+    storage_type VARCHAR(50) NOT NULL,     # 存储类型
+    access_url TEXT,                      # 访问URL
+    md5 VARCHAR(32),                      # MD5值
+    upload_id VARCHAR(64),                # 上传ID
+    status VARCHAR(20) NOT NULL,          # 状态
+    bucket_name VARCHAR(100),             # 存储空间
+    file_size BIGINT,                     # 文件大小
+    create_time TIMESTAMP,                # 创建时间
+    update_time TIMESTAMP                 # 更新时间
+);
+```
+
+#### 分片信息表 (chunk_info)
+```sql
+CREATE TABLE chunk_info (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    upload_id VARCHAR(64) NOT NULL,       # 上传ID
+    bucket_name VARCHAR(100),             # 存储空间
+    chunk_number INTEGER NOT NULL,        # 分片序号
+    upload_status VARCHAR(20) NOT NULL,   # 上传状态
+    file_name VARCHAR(255) NOT NULL,      # 文件名
+    original_file_name VARCHAR(255) NOT NULL, # 原始文件名
+    md5 VARCHAR(32),                      # MD5值
+    storage_type VARCHAR(50) NOT NULL,    # 存储类型
+    file_size BIGINT,                     # 分片大小
+    chunk_path TEXT,                      # 分片路径
+    create_time TIMESTAMP,                # 创建时间
+    update_time TIMESTAMP                 # 更新时间
+);
+```
 
 ## 目录结构
 
@@ -62,47 +121,7 @@ src/main/java/com/uluckyxh/shardfileupload/
 └── util/           # 工具类
 ```
 
-## 数据库设计
-
-### 文件信息表 (file_info)
-```sql
-CREATE TABLE file_info (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    file_name VARCHAR(255) NOT NULL,      # 文件名
-    original_file_name VARCHAR(255) NOT NULL, # 原始文件名
-    file_ext VARCHAR(50),                 # 文件扩展名
-    storage_type VARCHAR(50) NOT NULL,     # 存储类型
-    access_url TEXT,                      # 访问URL
-    md5 VARCHAR(32),                      # MD5值
-    upload_id VARCHAR(64),                # 上传ID
-    status VARCHAR(20) NOT NULL,          # 状态
-    bucket_name VARCHAR(100),             # 存储空间
-    file_size BIGINT,                     # 文件大小
-    create_time TIMESTAMP,                # 创建时间
-    update_time TIMESTAMP                 # 更新时间
-);
-```
-
-### 分片信息表 (chunk_info)
-```sql
-CREATE TABLE chunk_info (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    upload_id VARCHAR(64) NOT NULL,       # 上传ID
-    bucket_name VARCHAR(100),             # 存储空间
-    chunk_number INTEGER NOT NULL,        # 分片序号
-    upload_status VARCHAR(20) NOT NULL,   # 上传状态
-    file_name VARCHAR(255) NOT NULL,      # 文件名
-    original_file_name VARCHAR(255) NOT NULL, # 原始文件名
-    md5 VARCHAR(32),                      # MD5值
-    storage_type VARCHAR(50) NOT NULL,    # 存储类型
-    file_size BIGINT,                     # 分片大小
-    chunk_path TEXT,                      # 分片路径
-    create_time TIMESTAMP,                # 创建时间
-    update_time TIMESTAMP                 # 更新时间
-);
-```
-
-## 配置说明
+## 文件上传配置
 
 ```yaml
 file:

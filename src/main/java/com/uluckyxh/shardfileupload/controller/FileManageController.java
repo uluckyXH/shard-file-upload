@@ -74,8 +74,9 @@ public class FileManageController {
         }
 
         long fileSize = file.getSize();
+        long mbToBytes = FileSizeUtil.mbToBytes(maxFileSize);
         // 判断文件大小
-        if (fileSize > maxFileSize * 1024 * 1024) {
+        if (fileSize > mbToBytes) {
             return Result.error("文件过大，超出" + maxFileSize + "MB限制");
         }
 
