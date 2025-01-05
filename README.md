@@ -149,16 +149,6 @@ git clone https://github.com/uluckyXH/shard-file-upload.git
 
 3. 使用IDE导入项目（推荐IntelliJ IDEA）
 
-4. 安装依赖
-```bash
-mvn install
-```
-
-5. 运行项目
-```bash
-mvn spring-boot:run
-```
-
 ## 许可证
 
 [Apache License 2.0](LICENSE)
