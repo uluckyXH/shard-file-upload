@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS chunk_info (
     md5 VARCHAR(32),
     storage_type VARCHAR(50) NOT NULL,
     file_size BIGINT,
+    chunk_path TEXT,
     create_time TIMESTAMP DEFAULT (datetime('now', 'localtime')),  -- 使用本地时间
     update_time TIMESTAMP DEFAULT (datetime('now', 'localtime'))
 );

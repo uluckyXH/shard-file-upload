@@ -67,6 +67,11 @@ public class ChunkInfo {
     private Long fileSize;
 
     /**
+     * 分片文件路径
+     */
+    private String chunkPath;
+
+    /**
      * 创建时间
      */
     @JsonFormat(timezone = "GMT+8",pattern = "yyyy-MM-dd HH:mm:ss")

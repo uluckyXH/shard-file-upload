@@ -49,7 +49,7 @@ file:
     # 单个分片大小（MB）
     chunkSize: 5
     # 单文件大小限制（MB）
-    maxFileSize: 100
+    maxFileSize: 5120 #5GB
     # 预览地址
     previewUrl: http://127.0.0.1:6060/file/view/
 

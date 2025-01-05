@@ -2,6 +2,7 @@ package com.uluckyxh.shardfileupload.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -30,6 +31,7 @@ public class FileInfo {
     /**
      * 源文件名
      */
+    @NotBlank(message = "源文件名不能为空")
     private String originalFileName;
 
     /**

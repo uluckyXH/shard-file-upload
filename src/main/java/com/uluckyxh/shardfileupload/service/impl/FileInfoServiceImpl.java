@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.uluckyxh.shardfileupload.config.excepition.FileOperationException;
 import com.uluckyxh.shardfileupload.entity.FileInfo;
 import com.uluckyxh.shardfileupload.mapper.FileInfoMapper;
 import com.uluckyxh.shardfileupload.service.FileInfoService;
@@ -19,7 +20,7 @@ public class FileInfoServiceImpl extends ServiceImpl<FileInfoMapper, FileInfo> i
 
 
     @Override
-    public IPage<FileInfo> getByPage(Integer page, Integer size,String fileName) {
+    public IPage<FileInfo> getByPage(Integer page, Integer size, String fileName) {
         Page<FileInfo> pageInfo = new Page<>(page, size);
         LambdaQueryWrapper<FileInfo> queryWrapper = new LambdaQueryWrapper<>();
         if (StrUtil.isNotBlank(fileName)) {
@@ -27,5 +28,16 @@ public class FileInfoServiceImpl extends ServiceImpl<FileInfoMapper, FileInfo> i
         }
         queryWrapper.orderByDesc(FileInfo::getCreateTime);
         return baseMapper.selectPage(pageInfo, queryWrapper);
+    }
+
+    @Override
+    public FileInfo getByUploadId(String uploadId) {
+        if (StrUtil.isBlank(uploadId)) {
+            throw new FileOperationException("uploadId不能为空");
+        }
+
+        LambdaQueryWrapper<FileInfo> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(FileInfo::getUploadId, uploadId);
+        return baseMapper.selectOne(queryWrapper);
     }
 }

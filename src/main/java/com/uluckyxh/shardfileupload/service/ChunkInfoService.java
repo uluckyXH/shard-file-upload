@@ -9,6 +9,9 @@ import java.util.List;
  * 分片信息服务接口
  */
 public interface ChunkInfoService extends IService<ChunkInfo> {
-    
 
-} 
+
+    List<ChunkInfo> getByUploadId(String uploadId);
+
+    void removeByUploadId(String uploadId);
+}

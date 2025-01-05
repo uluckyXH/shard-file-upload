@@ -4,14 +4,18 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.uluckyxh.shardfileupload.config.excepition.FileOperationException;
 import com.uluckyxh.shardfileupload.constant.FileConstant;
+import com.uluckyxh.shardfileupload.entity.ChunkInfo;
 import com.uluckyxh.shardfileupload.entity.FileInfo;
 import com.uluckyxh.shardfileupload.enums.FileStatus;
 import com.uluckyxh.shardfileupload.manage.FileManage;
 import com.uluckyxh.shardfileupload.manage.FileManageFactory;
 import com.uluckyxh.shardfileupload.manage.impl.LocalFileManageImpl;
+import com.uluckyxh.shardfileupload.service.ChunkInfoService;
 import com.uluckyxh.shardfileupload.service.FileInfoService;
 import com.uluckyxh.shardfileupload.util.IdGeneratorUtil;
+import com.uluckyxh.shardfileupload.vo.UploadConfig;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -42,6 +47,13 @@ public class FileManageController {
     // 本地预览地址
     @Value("${file.upload.previewUrl}")
     private String previewUrl;
+
+    // 单个分片文件大小chunkSize
+    @Value("${file.upload.chunkSize}")
+    private Integer chunkSize;
+
+    @Autowired
+    private ChunkInfoService chunkInfoService;
 
     @Autowired
     private FileInfoService fileInfoService;
@@ -134,10 +146,11 @@ public class FileManageController {
 
     /**
      * 文件预览/下载接口
-     * @param id 文件ID
+     *
+     * @param id       文件ID
      * @param filename 自定义下载文件名（可选）
-     * @param preview 是否为预览模式（默认false表示下载模式）
-     * @param charset 文件编码（默认UTF-8）
+     * @param preview  是否为预览模式（默认false表示下载模式）
+     * @param charset  文件编码（默认UTF-8）
      */
     @RequestMapping(value = "/view/{id}", method = RequestMethod.GET)
     public void view(@PathVariable String id,
@@ -189,13 +202,177 @@ public class FileManageController {
     }
 
     /**
+     * 初始化分片上传
+     */
+    @PostMapping("/initiateMultipartUpload")
+    public Result<FileInfo> initiateMultipartUpload(@Valid @RequestBody FileInfo fileInfo) {
+        if (null == fileInfo) {
+            throw new FileOperationException("文件信息为空");
+        }
+
+        // 拿到源文件名
+        String originalFileName = fileInfo.getOriginalFileName();
+        // 拿到后缀
+        String fileExt = originalFileName.substring(originalFileName.lastIndexOf("."));
+        if (StrUtil.isBlank(fileExt)) {
+            throw new FileOperationException("无法获取文件后缀，请确认文件是否有后缀");
+        }
+
+        // 拿到文件大小
+        long fileSize = fileInfo.getFileSize();
+        // 判断文件大小
+        if (fileSize > maxFileSize * 1024 * 1024) {
+            throw new FileOperationException("文件过大，超出" + maxFileSize + "MB限制");
+        }
+
+        // 重命名文件名
+        String newFileName = IdGeneratorUtil.simpleUUID() + "_" + originalFileName;
+        fileInfo.setFileName(newFileName);
+        // 去掉后缀前面的.
+        fileExt = fileExt.substring(1);
+        // 文件后缀名
+        fileInfo.setFileExt(fileExt);
+        // 存储类型
+        fileInfo.setStorageType(storageType);
+        // 生成分片上传的唯一标识
+        fileInfo.setUploadId(IdGeneratorUtil.simpleUUID());
+        // 文件状态，上传中
+        fileInfo.setStatus(FileStatus.UPLOADING.getCode());
+        // 存储空间名称
+        fileInfo.setBucketName(fileManageFactory.getFileManage(storageType).getBucketName());
+
+
+        // 保存文件信息
+        boolean save = fileInfoService.save(fileInfo);
+        if (!save) {
+            throw new FileOperationException("文件信息保存失败");
+        }
+
+        return Result.success(fileInfo);
+    }
+
+    /**
+     * 上传分片
+     */
+    @PostMapping("/uploadChunk")
+    public Result<?> uploadChunk(@RequestParam String uploadId,
+                                 @RequestParam Integer chunkNumber,
+                                 @RequestParam MultipartFile file) {
+        if (file.isEmpty()) {
+            return Result.error("分片文件为空");
+        }
+
+        // 获取文件信息
+        FileInfo fileInfo = fileInfoService.getByUploadId(uploadId);
+        if (null == fileInfo) {
+            throw new FileOperationException("文件记录不存在");
+        }
+
+        // 单个分片文件大小
+        long fileSize = file.getSize();
+        if (fileSize > chunkSize * 1024 * 1024) {
+            return Result.error("分片文件过大，超出" + chunkSize + "MB限制");
+        }
+        try {
+            // 分片文件路径
+            String chunkFileName = uploadId + "_" + chunkNumber;
+
+            // 保存分片文件
+            FileManage fileManage = fileManageFactory.getFileManage(storageType);
+            String chunkUrl = fileManage.uploadChunk(file.getInputStream(), chunkFileName);
+
+            // 记录分片信息
+            ChunkInfo chunkInfo = new ChunkInfo();
+            chunkInfo.setUploadId(uploadId); // 上传ID
+            chunkInfo.setChunkNumber(chunkNumber); // 分片序号
+            chunkInfo.setChunkPath(chunkUrl); // 分片路径
+            chunkInfo.setUploadStatus(FileStatus.SUCCESS.getCode()); // 上传成功
+            chunkInfo.setFileName(fileInfo.getFileName()); // 文件名
+            chunkInfo.setOriginalFileName(fileInfo.getOriginalFileName()); // 源文件名
+            chunkInfo.setStorageType(storageType); // 存储类型
+            chunkInfo.setFileSize(file.getSize()); // 文件大小
+            chunkInfo.setBucketName(fileInfo.getBucketName()); // 存储空间名称
+
+            // 保存分片信息
+            boolean save = chunkInfoService.save(chunkInfo);
+            if (!save) {
+                throw new FileOperationException("分片信息保存失败");
+            }
+
+            return Result.success();
+        } catch (IOException e) {
+            log.error("分片上传失败", e);
+            return Result.error("分片上传失败");
+        }
+    }
+
+    /**
+     * 合并分片
+     */
+    @PostMapping("/mergeChunks")
+    public Result<?> mergeChunks(@RequestParam String uploadId) {
+        // 获取文件信息
+        FileInfo fileInfo = fileInfoService.getByUploadId(uploadId);
+        if (null == fileInfo) {
+            throw new FileOperationException("文件记录不存在");
+        }
+
+        // 获取所有分片信息
+        List<ChunkInfo> chunks = chunkInfoService.getByUploadId(uploadId);
+        if (chunks.isEmpty()) {
+            throw new FileOperationException("没有找到分片文件");
+        }
+
+        try {
+            // 合并文件
+            FileManage fileManage = fileManageFactory.getFileManage(storageType);
+            String resultUrl = fileManage.mergeChunks(chunks, fileInfo.getFileName());
+
+            // 更新文件信息
+            fileInfo.setStatus(FileStatus.SUCCESS.getCode());
+            fileInfo.setAccessUrl(resultUrl);
+            fileInfoService.updateById(fileInfo);
+
+            // 清理分片文件和记录
+            fileManage.cleanupChunks(chunks);
+            chunkInfoService.removeByUploadId(uploadId);
+
+            // 如果是本地存储，需要拼接预览地址
+            if (FileConstant.LOCAL.equals(storageType)) {
+                resultUrl = previewUrl + fileInfo.getId();
+            }
+
+            return Result.success("文件合并成功", resultUrl);
+        } catch (Exception e) {
+            // 合并失败，更新文件状态
+            fileInfo.setStatus(FileStatus.FAILED.getCode());
+            fileInfoService.updateById(fileInfo);
+
+            log.error("文件合并失败", e);
+            return Result.error("文件合并失败");
+        }
+    }
+
+    /**
+     * 获取配置
+     */
+    @GetMapping("/config")
+    public Result<UploadConfig> getUploadConfig() {
+        return Result.success(UploadConfig.builder()
+                .chunkSize(chunkSize)
+                .maxFileSize(maxFileSize)
+                .storageType(storageType)
+                .build());
+    }
+
+    /**
      * 分页查询文件列表
      */
     @GetMapping("/getByPage")
     public Result<IPage<FileInfo>> getByPage(@RequestParam(defaultValue = "1") Integer page,
-                                   @RequestParam(defaultValue = "10") Integer size,
+                                             @RequestParam(defaultValue = "10") Integer size,
                                              @RequestParam(required = false) String fileName) {
-        return Result.success(fileInfoService.getByPage(page, size,fileName));
+        return Result.success(fileInfoService.getByPage(page, size, fileName));
     }
 
     /**

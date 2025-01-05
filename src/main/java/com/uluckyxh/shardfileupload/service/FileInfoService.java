@@ -12,4 +12,6 @@ public interface FileInfoService extends IService<FileInfo> {
 
     IPage<FileInfo> getByPage(Integer page, Integer size,String fileName);
 
+    FileInfo getByUploadId(String uploadId);
+
 }
