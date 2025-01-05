@@ -1,6 +1,6 @@
 # 文件上传管理系统（后端）
 
-一个基于 Spring Boot 3 + MyBatis-Plus + SQLite 开发的现代化文件上传管理系统，支持大文件分片上传。
+一个基于 Spring Boot 3 + MyBatis-Plus + SQLite 分片上传案例
 
 ## 前端项目
 
