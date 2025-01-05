@@ -55,6 +55,14 @@
 - 单文件存储，方便部署和迁移
 - 支持完整的SQL功能
 - 适合中小型应用
+- 启动时自动初始化，无需手动建表
+
+### 数据库初始化
+项目启动时会自动完成以下操作：
+1. 在配置的路径（默认为 `db/data.db`）创建SQLite数据库文件
+2. 自动检查并创建必要的数据表（file_info和chunk_info）
+3. 自动创建索引以优化查询性能
+4. 所有初始化操作都是幂等的，多次启动不会影响数据
 
 ### SQLite配置
 ```yaml
@@ -72,7 +80,7 @@ spring:
 
 #### 文件信息表 (file_info)
 ```sql
-CREATE TABLE file_info (
+CREATE TABLE IF NOT EXISTS file_info (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     file_name VARCHAR(255) NOT NULL,      # 文件名
     original_file_name VARCHAR(255) NOT NULL, # 原始文件名
@@ -84,14 +92,14 @@ CREATE TABLE file_info (
     status VARCHAR(20) NOT NULL,          # 状态
     bucket_name VARCHAR(100),             # 存储空间
     file_size BIGINT,                     # 文件大小
-    create_time TIMESTAMP,                # 创建时间
-    update_time TIMESTAMP                 # 更新时间
+    create_time TIMESTAMP DEFAULT (datetime('now', 'localtime')),  # 使用本地时间
+    update_time TIMESTAMP DEFAULT (datetime('now', 'localtime'))   # 使用本地时间
 );
 ```
 
 #### 分片信息表 (chunk_info)
 ```sql
-CREATE TABLE chunk_info (
+CREATE TABLE IF NOT EXISTS chunk_info (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     upload_id VARCHAR(64) NOT NULL,       # 上传ID
     bucket_name VARCHAR(100),             # 存储空间
@@ -103,8 +111,8 @@ CREATE TABLE chunk_info (
     storage_type VARCHAR(50) NOT NULL,    # 存储类型
     file_size BIGINT,                     # 分片大小
     chunk_path TEXT,                      # 分片路径
-    create_time TIMESTAMP,                # 创建时间
-    update_time TIMESTAMP                 # 更新时间
+    create_time TIMESTAMP DEFAULT (datetime('now', 'localtime')),  # 使用本地时间
+    update_time TIMESTAMP DEFAULT (datetime('now', 'localtime'))   # 使用本地时间
 );
 ```
 
@@ -154,6 +162,14 @@ git clone https://github.com/uluckyXH/shard-file-upload.git
 ```
 
 3. 使用IDE导入项目（推荐IntelliJ IDEA）
+
+项目首次启动时会自动：
+- 创建 `db` 目录和数据库文件
+- 创建 `upload-files` 目录用于存储上传文件
+- 创建 `upload-files/temp` 目录用于存储分片文件
+- 初始化数据库表结构
+
+> 注：这些目录和文件都会在项目根目录下自动创建，无需手动操作。
 
 ## 许可证
 
