@@ -6,6 +6,13 @@
 
 前端项目地址：[shard-file-upload-vue](https://github.com/uluckyXH/shard-file-upload-vue)
 
+## 待办事项
+
+- [ ] 阿里云OSS存储适配
+  - 目前仅支持本地存储
+  - OSS存储策略实现待开发
+  - 包含分片上传到OSS的支持
+
 ## 技术栈
 
 - **开发框架**: Spring Boot 3.4.1
@@ -23,7 +30,6 @@
 
 - ✨ 支持普通上传和分片上传
 - 📦 大文件分片处理
-- 🚀 并发分片上传支持
 - 📊 分片上传进度跟踪
 - 🔒 文件MD5完整性校验
 
