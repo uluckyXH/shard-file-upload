@@ -185,45 +185,61 @@ public class LocalFileManageImpl implements FileManage {
     }
 
     /**
-     * 合并分片
+     * 合并分片文件为完整文件
+     *
+     * @param chunks 分片信息列表，包含每个分片的序号和存储路径等信息
+     * @param targetFileName 目标文件名，合并后的完整文件名
+     * @return 合并后文件的完整访问路径
      */
     @Override
     public String mergeChunks(List<ChunkInfo> chunks, String targetFileName) {
         try {
-            // 生成最终文件路径（按日期组织）
+            // 1. 按日期生成最终文件的相对存储路径
+            // 如: 2025/01/05/fileName.txt
             String relativePath = generateDatePath(targetFileName);
+
+            // 2. 拼接上传目录和相对路径，得到最终文件的完整路径
+            // 如: D:/uploads/2025/01/05/fileName.txt
             Path targetPath = Paths.get(uploadDir, relativePath);
 
-            // 确保目录存在
+            // 3. 创建目标文件所在的目录结构
+            // 如果 D:/uploads/2025/01/05 不存在，则创建这些目录
             Files.createDirectories(targetPath.getParent());
 
-            // 合并文件
+            // 4. 开始合并文件
             try (FileOutputStream fos = new FileOutputStream(targetPath.toFile())) {
-                // 按分片序号排序
+                // 5. 将分片按序号排序，确保按正确顺序合并
+                // 如: chunk_1, chunk_2, chunk_3...
                 chunks.sort(Comparator.comparing(ChunkInfo::getChunkNumber));
 
-                // 缓冲区大小设置为5MB
+                // 6. 创建与配置的分片大小相同的缓冲区
+                // 如果配置的分片大小为5MB，则缓冲区也为5MB
                 byte[] buffer = new byte[chunkSize * 1024 * 1024];
 
-                // 合并所有分片
+                // 7. 依次读取每个分片文件，写入目标文件
                 for (ChunkInfo chunk : chunks) {
                     try (FileInputStream fis = new FileInputStream(chunk.getChunkPath())) {
                         int len;
+                        // 循环读取分片内容并写入
                         while ((len = fis.read(buffer)) != -1) {
                             fos.write(buffer, 0, len);
                         }
                     }
                 }
+                // 8. 确保所有数据都写入磁盘
                 fos.flush();
             }
 
-            // 获取当前运行目录
+            // 9. 获取当前应用运行目录，并统一使用正斜杠
+            // 如: D:/myapp
             String userDir = Paths.get(System.getProperty("user.dir"))
                     .toString()
                     .replace('\\', '/');
 
-            // 返回完整的访问URL
+            // 10. 返回可访问的完整URL路径
+            // 如: D:/myapp/uploads/2025/01/05/fileName.txt
             return userDir + "/" + uploadDir + "/" + relativePath;
+
         } catch (IOException e) {
             log.error("文件合并失败", e);
             throw new RuntimeException("文件合并失败");
@@ -231,25 +247,38 @@ public class LocalFileManageImpl implements FileManage {
     }
 
     /**
-     * 清理分片文件
+     * 清理分片文件和相关目录
+     * 在文件合并完成后调用，用于清理临时的分片文件和空目录
+     *
+     * @param chunks 需要清理的分片信息列表
      */
     @Override
     public void cleanupChunks(List<ChunkInfo> chunks) {
         for (ChunkInfo chunk : chunks) {
             try {
-                // 删除分片文件
+                // 1. 删除分片文件
+                // 如果文件存在则删除，不存在则忽略
+                // 路径示例: temp/{uploadId}/chunk_1
                 Files.deleteIfExists(Paths.get(chunk.getChunkPath()));
 
-                // 尝试删除分片所在的空目录
+                // 2. 获取分片文件所在的目录
+                // 路径示例: temp/{uploadId}
                 Path chunkDir = Paths.get(chunk.getChunkPath()).getParent();
+
+                // 3. 如果目录存在且是一个目录，则尝试删除
                 if (Files.exists(chunkDir) && Files.isDirectory(chunkDir)) {
+                    // 4. 使用 try-with-resources 确保流被正确关闭
                     try (Stream<Path> files = Files.list(chunkDir)) {
+                        // 5. 检查目录是否为空
+                        // files.findFirst().isEmpty() 返回 true 表示目录为空
                         if (files.findFirst().isEmpty()) {
+                            // 6. 删除空目录
                             Files.delete(chunkDir);
                         }
                     }
                 }
             } catch (IOException e) {
+                // 7. 记录删除失败的情况，但不中断整个清理过程
                 log.error("清理分片文件失败: {}", chunk.getChunkPath(), e);
             }
         }

@@ -275,9 +275,13 @@ public class FileManageController {
 
         // 单个分片文件大小
         long fileSize = file.getSize();
-        if (fileSize > chunkSize * 1024 * 1024) {
+
+        // 计算限制大小
+        long mbToBytes = FileSizeUtil.mbToBytes(chunkSize);
+        if (fileSize > mbToBytes) {
             return Result.error("分片文件过大，超出" + chunkSize + "MB限制");
         }
+
         try {
             // 分片文件路径
             String chunkFileName = uploadId + "_" + chunkNumber;
