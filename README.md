@@ -6,6 +6,10 @@
 
 前端项目地址：[shard-file-upload-vue](https://github.com/uluckyXH/shard-file-upload-vue)
 
+## 演示
+
+![演示](./github-gif.gif)
+
 ## 待办事项
 
 - [ ] 阿里云OSS存储适配
