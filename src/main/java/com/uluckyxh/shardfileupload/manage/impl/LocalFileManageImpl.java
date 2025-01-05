@@ -43,6 +43,7 @@ public class LocalFileManageImpl implements FileManage {
      */
     private final Integer chunkSize;
 
+
     public LocalFileManageImpl(@Value("${file.upload.uploadDir}") String uploadDir,
                                @Value("${file.upload.tempDir}") String tempDir,
                                @Value("${file.upload.chunkSize}") Integer chunkSize) {
@@ -170,8 +171,13 @@ public class LocalFileManageImpl implements FileManage {
             // 写入分片文件
             Files.copy(inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
 
-            // 返回分片文件的完整路径
-            return targetPath.toString();
+            // 获取当前运行目录并规范化路径分隔符
+            String userDir = Paths.get(System.getProperty("user.dir"))
+                    .toString()
+                    .replace('\\', '/');
+
+            // 返回完整的访问URL（用正斜杠拼接路径）
+            return userDir + "/" + tempDir + "/" + relativePath;
         } catch (IOException e) {
             log.error("分片上传失败", e);
             throw new RuntimeException("分片上传失败");
@@ -197,7 +203,7 @@ public class LocalFileManageImpl implements FileManage {
                 chunks.sort(Comparator.comparing(ChunkInfo::getChunkNumber));
 
                 // 缓冲区大小设置为5MB
-                byte[] buffer = new byte[5 * 1024 * 1024];
+                byte[] buffer = new byte[chunkSize * 1024 * 1024];
 
                 // 合并所有分片
                 for (ChunkInfo chunk : chunks) {

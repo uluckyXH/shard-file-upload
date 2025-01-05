@@ -16,7 +16,7 @@ spring:
     name: shard-file-upload # 服务名称
   datasource:
     driver-class-name: org.sqlite.JDBC
-    url: jdbc:sqlite:db/data.db # 数据库连接地址
+    url: jdbc:sqlite:db/data.db?busy_timeout=30000&journal_mode=WAL # 数据库连接地址
     username:
     password:
 
@@ -49,7 +49,7 @@ file:
     # 单个分片大小（MB）
     chunkSize: 5
     # 单文件大小限制（MB）
-    maxFileSize: 5120 #5GB
+    maxFileSize: 3024 #1GB
     # 预览地址
     previewUrl: http://127.0.0.1:6060/file/view/
 

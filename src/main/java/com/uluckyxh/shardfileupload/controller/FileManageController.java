@@ -12,6 +12,7 @@ import com.uluckyxh.shardfileupload.manage.FileManageFactory;
 import com.uluckyxh.shardfileupload.manage.impl.LocalFileManageImpl;
 import com.uluckyxh.shardfileupload.service.ChunkInfoService;
 import com.uluckyxh.shardfileupload.service.FileInfoService;
+import com.uluckyxh.shardfileupload.util.FileSizeUtil;
 import com.uluckyxh.shardfileupload.util.IdGeneratorUtil;
 import com.uluckyxh.shardfileupload.vo.UploadConfig;
 import jakarta.servlet.http.HttpServletResponse;
@@ -220,9 +221,13 @@ public class FileManageController {
 
         // 拿到文件大小
         long fileSize = fileInfo.getFileSize();
+        // 转换maxFileSize从MB到bytes
+        long maxFileSizeBytes = FileSizeUtil.mbToBytes(maxFileSize);
+
         // 判断文件大小
-        if (fileSize > maxFileSize * 1024 * 1024) {
-            throw new FileOperationException("文件过大，超出" + maxFileSize + "MB限制");
+        if (fileSize > maxFileSizeBytes) {
+            throw new FileOperationException("文件过大，超出" + maxFileSize + "MB限制" +
+                    "（当前文件大小：" + FileSizeUtil.formatFileSize(fileSize) + "）");
         }
 
         // 重命名文件名
