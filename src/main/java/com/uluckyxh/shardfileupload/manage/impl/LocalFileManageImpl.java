@@ -1,7 +1,9 @@
 package com.uluckyxh.shardfileupload.manage.impl;
 
+import com.uluckyxh.shardfileupload.annotation.FileManageStorageType;
 import com.uluckyxh.shardfileupload.config.excepition.FileOperationException;
 import com.uluckyxh.shardfileupload.entity.ChunkInfo;
+import com.uluckyxh.shardfileupload.enums.StorageType;
 import com.uluckyxh.shardfileupload.manage.FileManage;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,7 @@ import java.util.stream.Stream;
  */
 @Slf4j
 @Component
+@FileManageStorageType(type = StorageType.LOCAL)
 public class LocalFileManageImpl implements FileManage {
 
     /**

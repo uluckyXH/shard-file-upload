@@ -7,6 +7,7 @@ import com.uluckyxh.shardfileupload.constant.FileConstant;
 import com.uluckyxh.shardfileupload.entity.ChunkInfo;
 import com.uluckyxh.shardfileupload.entity.FileInfo;
 import com.uluckyxh.shardfileupload.enums.FileStatus;
+import com.uluckyxh.shardfileupload.enums.StorageType;
 import com.uluckyxh.shardfileupload.manage.FileManage;
 import com.uluckyxh.shardfileupload.manage.FileManageFactory;
 import com.uluckyxh.shardfileupload.manage.impl.LocalFileManageImpl;
@@ -59,9 +60,6 @@ public class FileManageController {
     @Autowired
     private FileInfoService fileInfoService;
 
-    @Autowired
-    private FileManageFactory fileManageFactory;
-
     /**
      * 文件上传
      */
@@ -105,7 +103,8 @@ public class FileManageController {
             // 直接用inputStream
             InputStream inputStream = file.getInputStream();
             // 文件上传
-            FileManage fileManage = fileManageFactory.getFileManage(storageType);
+            StorageType storageType = StorageType.valueOf(this.storageType);
+            FileManage fileManage = FileManageFactory.getFileManage(storageType, FileManage.class);
             resultUrl = fileManage.upload(inputStream, newFileName);
             // 源文件名
             fileInfo.setOriginalFileName(fileName);
@@ -118,7 +117,7 @@ public class FileManageController {
             // 文件状态，上传成功
             fileInfo.setStatus(FileStatus.SUCCESS.getCode());
             // 存储类型
-            fileInfo.setStorageType(storageType);
+            fileInfo.setStorageType(this.storageType);
             // 文件访问路径
             fileInfo.setAccessUrl(resultUrl);
             // backetName
@@ -245,7 +244,7 @@ public class FileManageController {
         // 文件状态，上传中
         fileInfo.setStatus(FileStatus.UPLOADING.getCode());
         // 存储空间名称
-        fileInfo.setBucketName(fileManageFactory.getFileManage(storageType).getBucketName());
+        fileInfo.setBucketName(StorageType.valueOf(storageType).getDescription());
 
 
         // 保存文件信息
@@ -288,7 +287,8 @@ public class FileManageController {
             String chunkFileName = uploadId + "_" + chunkNumber;
 
             // 保存分片文件
-            FileManage fileManage = fileManageFactory.getFileManage(storageType);
+            StorageType storageType = StorageType.valueOf(this.storageType);
+            FileManage fileManage = FileManageFactory.getFileManage(storageType, FileManage.class);
             String chunkUrl = fileManage.uploadChunk(file.getInputStream(), chunkFileName);
 
             // 记录分片信息
@@ -299,7 +299,7 @@ public class FileManageController {
             chunkInfo.setUploadStatus(FileStatus.SUCCESS.getCode()); // 上传成功
             chunkInfo.setFileName(fileInfo.getFileName()); // 文件名
             chunkInfo.setOriginalFileName(fileInfo.getOriginalFileName()); // 源文件名
-            chunkInfo.setStorageType(storageType); // 存储类型
+            chunkInfo.setStorageType(storageType.getCode()); // 存储类型
             chunkInfo.setFileSize(file.getSize()); // 文件大小
             chunkInfo.setBucketName(fileInfo.getBucketName()); // 存储空间名称
 
@@ -335,7 +335,8 @@ public class FileManageController {
 
         try {
             // 合并文件
-            FileManage fileManage = fileManageFactory.getFileManage(storageType);
+            StorageType storageType = StorageType.valueOf(this.storageType);
+            FileManage fileManage = FileManageFactory.getFileManage(storageType, FileManage.class);
             String resultUrl = fileManage.mergeChunks(chunks, fileInfo.getFileName());
 
             // 更新文件信息
@@ -348,7 +349,7 @@ public class FileManageController {
             chunkInfoService.removeByUploadId(uploadId);
 
             // 如果是本地存储，需要拼接预览地址
-            if (FileConstant.LOCAL.equals(storageType)) {
+            if (FileConstant.LOCAL.equals(storageType.getDescription())) {
                 resultUrl = previewUrl + fileInfo.getId();
             }
 
